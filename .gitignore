@@ -1,0 +1,38 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+
+# Angular / Node
+**/node_modules/
+**/dist/
+**/.angular/
+.nx/
+
+# IDE
+.idea/
+.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test / coverage
+coverage/
+TestResults/
+
+# Local Docker data
+mysql-data/
+
+# User uploads during development
+uploads/
