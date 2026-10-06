@@ -2,10 +2,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
-COPY *.sln ./
+# Copiar definición del proyecto y restaurar paquetes
 COPY src/GestionNegocios.Api/*.csproj src/GestionNegocios.Api/
-RUN dotnet restore
+RUN dotnet restore src/GestionNegocios.Api/GestionNegocios.Api.csproj
 
+# Copiar código fuente y compilar release
 COPY src/ src/
 RUN dotnet publish src/GestionNegocios.Api/GestionNegocios.Api.csproj \
     -c Release \
