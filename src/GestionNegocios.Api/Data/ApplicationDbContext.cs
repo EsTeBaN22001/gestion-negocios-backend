@@ -50,7 +50,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(u => u.Rol).IsRequired().HasMaxLength(50);
             entity.Property(u => u.Avatar).HasMaxLength(255);
             entity.Property(u => u.Activo).HasDefaultValue(true);
-            entity.Property(u => u.FechaCreacion).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(u => u.FechaCreacion).HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
             // Sucursal 1:N Usuario (SucursalId es nullable para Administrador)
             entity.HasOne(u => u.Sucursal)
@@ -118,7 +118,7 @@ public class ApplicationDbContext : DbContext
         {
             entity.ToTable("Ventas");
             entity.HasKey(v => v.Id);
-            entity.Property(v => v.Fecha).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(v => v.Fecha).HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
             entity.Property(v => v.Total).HasPrecision(18, 2);
             entity.Property(v => v.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Confirmada");
             entity.Property(v => v.ArchivoAdjunto).HasMaxLength(255);
