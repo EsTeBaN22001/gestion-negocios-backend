@@ -23,6 +23,9 @@ builder.Services.AddSingleton<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>
 
 // ─── Servicios de Negocio ───────────────────────────────────────────────────
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ISucursalService, SucursalService>();
+builder.Services.AddScoped<ICategoriaService, CategoriaService>();
+builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 
 // ─── Autenticación JWT ──────────────────────────────────────────────────────
 var jwtKey = builder.Configuration["Jwt:Key"]
