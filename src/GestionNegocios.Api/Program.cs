@@ -28,6 +28,7 @@ builder.Services.AddScoped<ICategoriaService, CategoriaService>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddScoped<IStockService, StockService>();
+builder.Services.AddScoped<IVentaService, VentaService>();
 
 // ─── Autenticación JWT ──────────────────────────────────────────────────────
 var jwtKey = builder.Configuration["Jwt:Key"]

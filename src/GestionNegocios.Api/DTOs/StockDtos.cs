@@ -9,6 +9,7 @@ public class StockListDto
     public string ProductoCodigo { get; set; } = string.Empty;
     public string ProductoNombre { get; set; } = string.Empty;
     public decimal ProductoPrecio { get; set; }
+    public bool ProductoActivo { get; set; }
     public string CategoriaNombre { get; set; } = string.Empty;
     public int SucursalId { get; set; }
     public string SucursalNombre { get; set; } = string.Empty;
@@ -36,6 +37,7 @@ public class StockDetailDto
     public string ProductoCodigo { get; set; } = string.Empty;
     public string ProductoNombre { get; set; } = string.Empty;
     public decimal ProductoPrecio { get; set; }
+    public bool ProductoActivo { get; set; }
     public string CategoriaNombre { get; set; } = string.Empty;
     public int SucursalId { get; set; }
     public string SucursalNombre { get; set; } = string.Empty;
