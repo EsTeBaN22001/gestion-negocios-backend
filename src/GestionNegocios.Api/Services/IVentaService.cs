@@ -25,4 +25,15 @@ public interface IVentaService
         bool isAdmin);
 
     Task<VentaServiceResult> AnularAsync(int id, int? userSucursalId, bool isAdmin);
+
+    Task<VentaServiceResult> AdjuntarArchivoAsync(
+        int ventaId,
+        IFormFile file,
+        int? userSucursalId,
+        bool isAdmin);
+
+    Task<(VentaServiceResult result, string? physicalPath, string? contentType, string? downloadFileName)> GetAdjuntoAsync(
+        int ventaId,
+        int? userSucursalId,
+        bool isAdmin);
 }

@@ -29,6 +29,7 @@ builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddScoped<IStockService, StockService>();
 builder.Services.AddScoped<IVentaService, VentaService>();
+builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 
 // ─── Autenticación JWT ──────────────────────────────────────────────────────
 var jwtKey = builder.Configuration["Jwt:Key"]
@@ -143,6 +144,9 @@ if (app.Environment.IsDevelopment())
 
 // ─── Middleware pipeline ─────────────────────────────────────────────────────
 app.UseCors("DevelopmentPolicy");
+
+// Archivos estáticos (ej. /uploads/avatars/...)
+app.UseStaticFiles();
 
 // Autenticación antes de Autorización
 app.UseAuthentication();

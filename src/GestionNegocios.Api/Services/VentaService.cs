@@ -8,10 +8,16 @@ namespace GestionNegocios.Api.Services;
 public class VentaService : IVentaService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IFileStorageService _fileStorageService;
 
-    public VentaService(ApplicationDbContext context)
+    private static readonly string[] AllowedVentaExtensions = [".pdf", ".jpg", ".jpeg", ".png"];
+    private static readonly string[] AllowedVentaMimeTypes = ["application/pdf", "image/jpeg", "image/png"];
+    private const long MaxVentaSizeBytes = 5 * 1024 * 1024; // 5 MB
+
+    public VentaService(ApplicationDbContext context, IFileStorageService fileStorageService)
     {
         _context = context;
+        _fileStorageService = fileStorageService;
     }
 
     public async Task<PagedResultDto<VentaListDto>> GetPagedAsync(
@@ -106,7 +112,8 @@ public class VentaService : IVentaService
                 SucursalNombre = v.Sucursal.Nombre,
                 UsuarioId = v.UsuarioId,
                 UsuarioNombre = v.Usuario.Nombre + " " + v.Usuario.Apellido,
-                DetallesCount = v.Detalles.Count
+                DetallesCount = v.Detalles.Count,
+                ArchivoAdjunto = v.ArchivoAdjunto
             })
             .ToListAsync();
 
@@ -361,6 +368,7 @@ public class VentaService : IVentaService
             SucursalNombre = venta.Sucursal.Nombre,
             UsuarioId = venta.UsuarioId,
             UsuarioNombre = $"{venta.Usuario.Nombre} {venta.Usuario.Apellido}",
+            ArchivoAdjunto = venta.ArchivoAdjunto,
             Detalles = venta.Detalles
                 .OrderBy(d => d.Id)
                 .Select(d => new VentaDetalleDto
@@ -374,5 +382,76 @@ public class VentaService : IVentaService
                 })
                 .ToList()
         };
+    }
+
+    public async Task<VentaServiceResult> AdjuntarArchivoAsync(
+        int ventaId,
+        IFormFile file,
+        int? userSucursalId,
+        bool isAdmin)
+    {
+        var venta = await GetVentaWithDetailsAsync(ventaId);
+        if (venta == null)
+        {
+            return new VentaServiceResult(VentaResultStatus.NotFound, Error: "La venta no existe.");
+        }
+
+        if (!isAdmin && userSucursalId != venta.SucursalId)
+        {
+            return new VentaServiceResult(VentaResultStatus.Forbidden, Error: "No tiene permiso para adjuntar archivos a una venta de otra sucursal.");
+        }
+
+        var (relativePath, saveError) = await _fileStorageService.SaveFileAsync(
+            file,
+            "ventas",
+            AllowedVentaExtensions,
+            AllowedVentaMimeTypes,
+            MaxVentaSizeBytes);
+
+        if (saveError != null)
+        {
+            return new VentaServiceResult(VentaResultStatus.ValidationError, Error: saveError);
+        }
+
+        // Si ya existía un comprobante anterior, lo eliminamos del filesystem
+        if (!string.IsNullOrWhiteSpace(venta.ArchivoAdjunto))
+        {
+            _fileStorageService.DeleteFile(venta.ArchivoAdjunto);
+        }
+
+        venta.ArchivoAdjunto = relativePath;
+        await _context.SaveChangesAsync();
+
+        return new VentaServiceResult(VentaResultStatus.Success, MapDetail(venta));
+    }
+
+    public async Task<(VentaServiceResult result, string? physicalPath, string? contentType, string? downloadFileName)> GetAdjuntoAsync(
+        int ventaId,
+        int? userSucursalId,
+        bool isAdmin)
+    {
+        var venta = await _context.Ventas.FirstOrDefaultAsync(v => v.Id == ventaId);
+        if (venta == null)
+        {
+            return (new VentaServiceResult(VentaResultStatus.NotFound, Error: "La venta no existe."), null, null, null);
+        }
+
+        if (!isAdmin && userSucursalId != venta.SucursalId)
+        {
+            return (new VentaServiceResult(VentaResultStatus.Forbidden, Error: "No tiene permiso para acceder al archivo adjunto de una venta de otra sucursal."), null, null, null);
+        }
+
+        if (string.IsNullOrWhiteSpace(venta.ArchivoAdjunto))
+        {
+            return (new VentaServiceResult(VentaResultStatus.NotFound, Error: "La venta no posee un archivo adjunto."), null, null, null);
+        }
+
+        var (exists, physicalPath, contentType, fileName) = _fileStorageService.GetFileInfo(venta.ArchivoAdjunto);
+        if (!exists)
+        {
+            return (new VentaServiceResult(VentaResultStatus.NotFound, Error: "El archivo físico no fue encontrado en el servidor."), null, null, null);
+        }
+
+        return (new VentaServiceResult(VentaResultStatus.Success), physicalPath, contentType, fileName);
     }
 }

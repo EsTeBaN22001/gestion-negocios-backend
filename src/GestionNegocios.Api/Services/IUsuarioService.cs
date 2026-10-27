@@ -9,4 +9,6 @@ public interface IUsuarioService
     Task<(UsuarioDetailDto? result, string? error)> CreateAsync(UsuarioCreateDto dto);
     Task<(UsuarioDetailDto? result, string? error, bool notFound)> UpdateAsync(int id, UsuarioUpdateDto dto, int currentUserId);
     Task<(bool success, string? error)> ToggleActivoAsync(int id, int currentUserId);
+    Task<(UsuarioDetailDto? result, string? error, bool notFound)> ActualizarAvatarAsync(int id, IFormFile file);
+    Task<(bool success, string? error, bool notFound)> EliminarAvatarAsync(int id);
 }

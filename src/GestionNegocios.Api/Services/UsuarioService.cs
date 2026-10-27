@@ -11,15 +11,22 @@ public class UsuarioService : IUsuarioService
     private readonly ApplicationDbContext _context;
     private readonly IPasswordHasher<Usuario> _passwordHasher;
     private readonly ILogger<UsuarioService> _logger;
+    private readonly IFileStorageService _fileStorageService;
+
+    private static readonly string[] AllowedAvatarExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+    private static readonly string[] AllowedAvatarMimeTypes = ["image/jpeg", "image/png", "image/webp"];
+    private const long MaxAvatarSizeBytes = 2 * 1024 * 1024; // 2 MB
 
     public UsuarioService(
         ApplicationDbContext context,
         IPasswordHasher<Usuario> passwordHasher,
-        ILogger<UsuarioService> logger)
+        ILogger<UsuarioService> logger,
+        IFileStorageService fileStorageService)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _logger = logger;
+        _fileStorageService = fileStorageService;
     }
 
     public async Task<PagedResultDto<UsuarioListDto>> GetPagedAsync(
@@ -344,5 +351,75 @@ public class UsuarioService : IUsuarioService
 
         _logger.LogInformation("Estado del usuario ID {Id} cambiado a Activo={Activo}", id, usuario.Activo);
         return (true, null);
+    }
+
+    public async Task<(UsuarioDetailDto? result, string? error, bool notFound)> ActualizarAvatarAsync(int id, IFormFile file)
+    {
+        var usuario = await _context.Usuarios
+            .Include(u => u.Sucursal)
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+        if (usuario == null)
+        {
+            return (null, "El usuario no existe.", true);
+        }
+
+        var (relativePath, saveError) = await _fileStorageService.SaveFileAsync(
+            file,
+            "avatars",
+            AllowedAvatarExtensions,
+            AllowedAvatarMimeTypes,
+            MaxAvatarSizeBytes);
+
+        if (saveError != null)
+        {
+            return (null, saveError, false);
+        }
+
+        // Eliminar avatar anterior para evitar archivos huérfanos
+        if (!string.IsNullOrWhiteSpace(usuario.Avatar))
+        {
+            _fileStorageService.DeleteFile(usuario.Avatar);
+        }
+
+        usuario.Avatar = relativePath;
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Avatar actualizado para usuario ID {Id}: {Avatar}", id, relativePath);
+
+        return (new UsuarioDetailDto
+        {
+            Id = usuario.Id,
+            Nombre = usuario.Nombre,
+            Apellido = usuario.Apellido,
+            Email = usuario.Email,
+            Rol = usuario.Rol,
+            SucursalId = usuario.SucursalId,
+            SucursalNombre = usuario.Sucursal?.Nombre,
+            Activo = usuario.Activo,
+            Avatar = usuario.Avatar,
+            FechaCreacion = usuario.FechaCreacion
+        }, null, false);
+    }
+
+    public async Task<(bool success, string? error, bool notFound)> EliminarAvatarAsync(int id)
+    {
+        var usuario = await _context.Usuarios.FindAsync(id);
+        if (usuario == null)
+        {
+            return (false, "El usuario no existe.", true);
+        }
+
+        if (string.IsNullOrWhiteSpace(usuario.Avatar))
+        {
+            return (true, null, false);
+        }
+
+        _fileStorageService.DeleteFile(usuario.Avatar);
+        usuario.Avatar = null;
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Avatar eliminado para usuario ID {Id}", id);
+        return (true, null, false);
     }
 }

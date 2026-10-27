@@ -94,6 +94,49 @@ public class VentasController : ControllerBase
         return ToActionResult(result);
     }
 
+    /// <summary>
+    /// Adjunta un comprobante o factura a una venta existente.
+    /// Empleados solo pueden operar sobre ventas de su propia sucursal.
+    /// </summary>
+    [HttpPost("{id}/adjunto")]
+    [ProducesResponseType(typeof(VentaDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> AdjuntarArchivo(int id, IFormFile file)
+    {
+        var result = await _ventaService.AdjuntarArchivoAsync(id, file, GetCurrentUserSucursalId(), IsAdmin());
+        return ToActionResult(result);
+    }
+
+    /// <summary>
+    /// Descarga o visualiza el archivo adjunto asociado a una venta con streaming seguro.
+    /// Empleados solo pueden consultar comprobantes de su propia sucursal (403 Forbidden en caso contrario).
+    /// </summary>
+    [HttpGet("{id}/adjunto")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAdjunto(int id)
+    {
+        var (result, physicalPath, contentType, downloadFileName) = await _ventaService.GetAdjuntoAsync(
+            id,
+            GetCurrentUserSucursalId(),
+            IsAdmin());
+
+        if (result.Status == VentaResultStatus.Forbidden)
+        {
+            return Forbid();
+        }
+
+        if (result.Status == VentaResultStatus.NotFound)
+        {
+            return NotFound(CreateProblemDetails(StatusCodes.Status404NotFound, "Recurso no encontrado", result.Error));
+        }
+
+        return PhysicalFile(physicalPath!, contentType!, downloadFileName, enableRangeProcessing: true);
+    }
+
     private int? GetCurrentUserId()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);

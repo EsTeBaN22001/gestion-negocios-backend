@@ -59,7 +59,7 @@ public class AuthControllerTests
     public async Task Login_ValidCredentials_ReturnsOkWithResponseDto()
     {
         // Arrange
-        var controller = new AuthController(new FakeAuthService(), NullLogger<AuthController>.Instance);
+        var controller = new AuthController(new FakeAuthService(), null!, NullLogger<AuthController>.Instance);
         var request = new LoginRequestDto
         {
             Email = "admin@test.local",
@@ -80,7 +80,7 @@ public class AuthControllerTests
     public async Task Login_InvalidCredentials_ReturnsUnauthorizedWithProblemDetails()
     {
         // Arrange
-        var controller = new AuthController(new FakeAuthService(), NullLogger<AuthController>.Instance);
+        var controller = new AuthController(new FakeAuthService(), null!, NullLogger<AuthController>.Instance);
         var request = new LoginRequestDto
         {
             Email = "admin@test.local",
@@ -102,7 +102,7 @@ public class AuthControllerTests
     public async Task GetCurrentUser_ValidClaims_ReturnsOkWithUserDto()
     {
         // Arrange
-        var controller = new AuthController(new FakeAuthService(), NullLogger<AuthController>.Instance);
+        var controller = new AuthController(new FakeAuthService(), null!, NullLogger<AuthController>.Instance);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, "1"),
@@ -131,7 +131,7 @@ public class AuthControllerTests
     public async Task GetCurrentUser_InvalidClaims_ReturnsUnauthorized()
     {
         // Arrange
-        var controller = new AuthController(new FakeAuthService(), NullLogger<AuthController>.Instance);
+        var controller = new AuthController(new FakeAuthService(), null!, NullLogger<AuthController>.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) }
@@ -150,7 +150,7 @@ public class AuthControllerTests
     public void AdminCheck_AsAdmin_ReturnsOk()
     {
         // Arrange
-        var controller = new AuthController(new FakeAuthService(), NullLogger<AuthController>.Instance);
+        var controller = new AuthController(new FakeAuthService(), null!, NullLogger<AuthController>.Instance);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, "1"),

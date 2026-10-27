@@ -15,11 +15,16 @@ namespace GestionNegocios.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IUsuarioService _usuarioService;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService _authService, ILogger<AuthController> logger)
+    public AuthController(
+        IAuthService authService,
+        IUsuarioService usuarioService,
+        ILogger<AuthController> logger)
     {
-        this._authService = _authService;
+        _authService = authService;
+        _usuarioService = usuarioService;
         _logger = logger;
     }
 
@@ -110,5 +115,60 @@ public class AuthController : ControllerBase
             rol,
             timestamp = DateTime.UtcNow
         });
+    }
+
+    /// <summary>
+    /// Sube o actualiza la foto de perfil (avatar) del usuario actualmente autenticado.
+    /// </summary>
+    [HttpPost("perfil/avatar")]
+    [Authorize]
+    [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> UploadMyAvatar(IFormFile file)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var (updatedUser, error, notFound) = await _usuarioService.ActualizarAvatarAsync(userId, file);
+        if (notFound) return Unauthorized();
+
+        if (error != null)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Error al subir avatar",
+                Detail = error
+            });
+        }
+
+        var me = await _authService.GetCurrentUserAsync(userId);
+        return Ok(me);
+    }
+
+    /// <summary>
+    /// Elimina la foto de perfil (avatar) del usuario actualmente autenticado.
+    /// </summary>
+    [HttpDelete("perfil/avatar")]
+    [Authorize]
+    [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> DeleteMyAvatar()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var (success, error, notFound) = await _usuarioService.EliminarAvatarAsync(userId);
+        if (notFound) return Unauthorized();
+
+        var me = await _authService.GetCurrentUserAsync(userId);
+        return Ok(me);
     }
 }

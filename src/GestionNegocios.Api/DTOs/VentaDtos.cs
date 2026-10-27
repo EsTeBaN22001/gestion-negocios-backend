@@ -33,6 +33,7 @@ public class VentaListDto
     public int UsuarioId { get; set; }
     public string UsuarioNombre { get; set; } = string.Empty;
     public int DetallesCount { get; set; }
+    public string? ArchivoAdjunto { get; set; }
 }
 
 public class VentaDetalleDto
@@ -55,5 +56,6 @@ public class VentaDetailDto
     public string SucursalNombre { get; set; } = string.Empty;
     public int UsuarioId { get; set; }
     public string UsuarioNombre { get; set; } = string.Empty;
+    public string? ArchivoAdjunto { get; set; }
     public List<VentaDetalleDto> Detalles { get; set; } = [];
 }

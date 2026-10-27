@@ -78,7 +78,7 @@ public class VentaServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(CreateAsync_ValidSale_CreatesSaleAndDeductsStock));
         await SeedBaseDataAsync(context);
-        var service = new VentaService(context);
+        var service = new VentaService(context, null!);
 
         var result = await service.CreateAsync(new VentaCreateDto
         {
@@ -104,7 +104,7 @@ public class VentaServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(CreateAsync_InsufficientStock_DoesNotPersistOrModifyStock));
         await SeedBaseDataAsync(context);
-        var service = new VentaService(context);
+        var service = new VentaService(context, null!);
 
         var result = await service.CreateAsync(new VentaCreateDto
         {
@@ -122,7 +122,7 @@ public class VentaServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(CreateAsync_RepeatedProduct_ReturnsValidationError));
         await SeedBaseDataAsync(context);
-        var service = new VentaService(context);
+        var service = new VentaService(context, null!);
 
         var result = await service.CreateAsync(new VentaCreateDto
         {
@@ -143,7 +143,7 @@ public class VentaServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(CreateAsync_EmployeeSucursalIsForcedFromClaims));
         await SeedBaseDataAsync(context);
-        var service = new VentaService(context);
+        var service = new VentaService(context, null!);
 
         var result = await service.CreateAsync(new VentaCreateDto
         {
@@ -162,7 +162,7 @@ public class VentaServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(CreateAsync_PreservesHistoricalUnitPrice));
         await SeedBaseDataAsync(context);
-        var service = new VentaService(context);
+        var service = new VentaService(context, null!);
 
         var created = await service.CreateAsync(new VentaCreateDto
         {
@@ -185,7 +185,7 @@ public class VentaServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(AnularAsync_ConfirmedSale_RestoresStockAndKeepsHistory));
         await SeedBaseDataAsync(context);
-        var service = new VentaService(context);
+        var service = new VentaService(context, null!);
         var created = await service.CreateAsync(new VentaCreateDto
         {
             Detalles = [new VentaDetalleCreateDto { ProductoId = 1, Cantidad = 3 }]
@@ -205,7 +205,7 @@ public class VentaServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(AnularAsync_AlreadyCancelledSale_ReturnsConflictWithoutRestoringTwice));
         await SeedBaseDataAsync(context);
-        var service = new VentaService(context);
+        var service = new VentaService(context, null!);
         var created = await service.CreateAsync(new VentaCreateDto
         {
             Detalles = [new VentaDetalleCreateDto { ProductoId = 1, Cantidad = 3 }]
@@ -223,7 +223,7 @@ public class VentaServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(GetPagedAsync_EmployeeCanOnlySeeOwnSucursal));
         await SeedBaseDataAsync(context);
-        var service = new VentaService(context);
+        var service = new VentaService(context, null!);
 
         await service.CreateAsync(new VentaCreateDto
         {
@@ -242,5 +242,83 @@ public class VentaServiceTests
 
         Assert.Single(result.Items);
         Assert.Equal(1, result.Items.Single().SucursalId);
+    }
+
+    [Fact]
+    public async Task AdjuntarArchivoAsync_EmpleadoDifferentSucursal_ReturnsForbidden()
+    {
+        using var context = CreateInMemoryDbContext(nameof(AdjuntarArchivoAsync_EmpleadoDifferentSucursal_ReturnsForbidden));
+        await SeedBaseDataAsync(context);
+        var fakeStorage = new FakeFileStorageService();
+        var service = new VentaService(context, fakeStorage);
+
+        // Venta en sucursal 2
+        var created = await service.CreateAsync(new VentaCreateDto
+        {
+            SucursalId = 2,
+            Detalles = [new VentaDetalleCreateDto { ProductoId = 1, Cantidad = 1 }]
+        }, userId: 2, userSucursalId: null, isAdmin: true);
+
+        var formFile = new Microsoft.AspNetCore.Http.FormFile(new MemoryStream([1]), 0, 1, "file", "ticket.pdf");
+
+        // Empleado de sucursal 1 intenta adjuntar comprobante a venta de sucursal 2
+        var result = await service.AdjuntarArchivoAsync(created.Venta!.Id, formFile, userSucursalId: 1, isAdmin: false);
+
+        Assert.Equal(VentaResultStatus.Forbidden, result.Status);
+    }
+
+    [Fact]
+    public async Task AdjuntarArchivoAsync_ValidSale_SavesAttachmentAndReplacesOld()
+    {
+        using var context = CreateInMemoryDbContext(nameof(AdjuntarArchivoAsync_ValidSale_SavesAttachmentAndReplacesOld));
+        await SeedBaseDataAsync(context);
+        var fakeStorage = new FakeFileStorageService
+        {
+            RelativePathToReturn = "/uploads/ventas/factura.pdf"
+        };
+
+        var service = new VentaService(context, fakeStorage);
+
+        var created = await service.CreateAsync(new VentaCreateDto
+        {
+            Detalles = [new VentaDetalleCreateDto { ProductoId = 1, Cantidad = 1 }]
+        }, userId: 1, userSucursalId: 1, isAdmin: false);
+
+        var formFile = new Microsoft.AspNetCore.Http.FormFile(new MemoryStream([1]), 0, 1, "file", "factura.pdf")
+        {
+            Headers = new Microsoft.AspNetCore.Http.HeaderDictionary(),
+            ContentType = "application/pdf"
+        };
+        var result = await service.AdjuntarArchivoAsync(created.Venta!.Id, formFile, userSucursalId: 1, isAdmin: false);
+
+        Assert.Equal(VentaResultStatus.Success, result.Status);
+        Assert.Equal("/uploads/ventas/factura.pdf", result.Venta!.ArchivoAdjunto);
+    }
+
+    [Fact]
+    public async Task AnularAsync_PreservesArchivoAdjunto()
+    {
+        using var context = CreateInMemoryDbContext(nameof(AnularAsync_PreservesArchivoAdjunto));
+        await SeedBaseDataAsync(context);
+        var fakeStorage = new FakeFileStorageService();
+        var service = new VentaService(context, fakeStorage);
+
+        var created = await service.CreateAsync(new VentaCreateDto
+        {
+            Detalles = [new VentaDetalleCreateDto { ProductoId = 1, Cantidad = 1 }]
+        }, userId: 1, userSucursalId: 1, isAdmin: false);
+
+        var venta = await context.Ventas.FindAsync(created.Venta!.Id);
+        venta!.ArchivoAdjunto = "/uploads/ventas/comprobante_historico.pdf";
+        await context.SaveChangesAsync();
+
+        var anularResult = await service.AnularAsync(venta.Id, userSucursalId: 1, isAdmin: false);
+
+        Assert.Equal(VentaResultStatus.Success, anularResult.Status);
+        var reloaded = await context.Ventas.FindAsync(venta.Id);
+        Assert.Equal("Anulada", reloaded!.Estado);
+        Assert.Equal("/uploads/ventas/comprobante_historico.pdf", reloaded.ArchivoAdjunto);
+        // Comprobar que no se eliminó el archivo en disco
+        Assert.Empty(fakeStorage.DeletedFiles);
     }
 }

@@ -8,7 +8,7 @@ namespace GestionNegocios.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Administrador")]
+[Authorize]
 public class UsuariosController : ControllerBase
 {
     private readonly IUsuarioService _usuarioService;
@@ -28,6 +28,7 @@ public class UsuariosController : ControllerBase
     /// Obtiene una lista paginada de usuarios con soporte de filtros y búsqueda (Solo Administrador).
     /// </summary>
     [HttpGet]
+    [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(PagedResultDto<UsuarioListDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetPaged(
@@ -46,6 +47,7 @@ public class UsuariosController : ControllerBase
     /// Obtiene el detalle completo de un usuario por su identificador (Solo Administrador).
     /// </summary>
     [HttpGet("{id}")]
+    [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(UsuarioDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -61,6 +63,7 @@ public class UsuariosController : ControllerBase
     /// Crea un nuevo usuario en el sistema (Solo Administrador).
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(UsuarioDetailDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
@@ -97,6 +100,7 @@ public class UsuariosController : ControllerBase
     /// Actualiza los datos de un usuario existente (Solo Administrador).
     /// </summary>
     [HttpPut("{id}")]
+    [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(UsuarioDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -138,6 +142,7 @@ public class UsuariosController : ControllerBase
     /// Alterna el estado activo/inactivo de un usuario (Solo Administrador).
     /// </summary>
     [HttpPatch("{id}/toggle-activo")]
+    [Authorize(Roles = "Administrador")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -163,5 +168,70 @@ public class UsuariosController : ControllerBase
         }
 
         return Ok(new { message = "Estado de usuario actualizado correctamente." });
+    }
+
+    /// <summary>
+    /// Sube o actualiza la foto de perfil (avatar) de un usuario.
+    /// Administrador puede actualizar cualquier avatar; un usuario regular solo el suyo propio.
+    /// </summary>
+    [HttpPost("{id}/avatar")]
+    [ProducesResponseType(typeof(UsuarioDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UploadAvatar(int id, IFormFile file)
+    {
+        var currentUserId = GetCurrentUserId();
+        var isAdmin = User.IsInRole("Administrador");
+
+        if (!isAdmin && currentUserId != id)
+        {
+            return Forbid();
+        }
+
+        var (result, error, notFound) = await _usuarioService.ActualizarAvatarAsync(id, file);
+        if (notFound)
+        {
+            return NotFound(new ProblemDetails { Status = StatusCodes.Status404NotFound, Title = "Usuario no encontrado" });
+        }
+
+        if (error != null)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Error al subir avatar",
+                Detail = error
+            });
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Elimina el avatar de un usuario y borra el archivo físico del disco.
+    /// Administrador puede eliminar cualquier avatar; un usuario regular solo el suyo propio.
+    /// </summary>
+    [HttpDelete("{id}/avatar")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteAvatar(int id)
+    {
+        var currentUserId = GetCurrentUserId();
+        var isAdmin = User.IsInRole("Administrador");
+
+        if (!isAdmin && currentUserId != id)
+        {
+            return Forbid();
+        }
+
+        var (success, error, notFound) = await _usuarioService.EliminarAvatarAsync(id);
+        if (notFound)
+        {
+            return NotFound(new ProblemDetails { Status = StatusCodes.Status404NotFound, Title = "Usuario no encontrado" });
+        }
+
+        return Ok(new { message = "Avatar eliminado correctamente." });
     }
 }

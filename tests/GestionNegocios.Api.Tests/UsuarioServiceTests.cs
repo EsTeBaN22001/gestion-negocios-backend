@@ -24,7 +24,7 @@ public class UsuarioServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(CreateAsync_DuplicateEmail_ReturnsError));
         var hasher = new PasswordHasher<Usuario>();
-        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance);
+        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance, null!);
 
         context.Usuarios.Add(new Usuario
         {
@@ -54,7 +54,7 @@ public class UsuarioServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(CreateAsync_EmpleadoWithoutSucursal_ReturnsError));
         var hasher = new PasswordHasher<Usuario>();
-        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance);
+        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance, null!);
 
         var (created, error) = await service.CreateAsync(new UsuarioCreateDto
         {
@@ -76,7 +76,7 @@ public class UsuarioServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(CreateAsync_EmpleadoWithValidSucursal_CreatesAndHashesPassword));
         var hasher = new PasswordHasher<Usuario>();
-        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance);
+        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance, null!);
 
         var sucursal = new Sucursal { Nombre = "Sucursal Norte", Activa = true };
         context.Sucursales.Add(sucursal);
@@ -109,7 +109,7 @@ public class UsuarioServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(CreateAsync_AdministradorWithoutSucursal_Allowed));
         var hasher = new PasswordHasher<Usuario>();
-        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance);
+        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance, null!);
 
         var (created, error) = await service.CreateAsync(new UsuarioCreateDto
         {
@@ -132,7 +132,7 @@ public class UsuarioServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(UpdateAsync_AdminDeactivatingSelf_ReturnsError));
         var hasher = new PasswordHasher<Usuario>();
-        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance);
+        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance, null!);
 
         var admin = new Usuario
         {
@@ -164,7 +164,7 @@ public class UsuarioServiceTests
     {
         using var context = CreateInMemoryDbContext(nameof(ToggleActivoAsync_OnlyAdmin_CannotDeactivate));
         var hasher = new PasswordHasher<Usuario>();
-        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance);
+        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance, null!);
 
         var admin = new Usuario
         {
@@ -190,5 +190,74 @@ public class UsuarioServiceTests
 
         Assert.False(success);
         Assert.Contains("único Administrador activo", error);
+    }
+
+    [Fact]
+    public async Task ActualizarAvatarAsync_ValidFile_SavesAndDeletesOldAvatar()
+    {
+        using var context = CreateInMemoryDbContext(nameof(ActualizarAvatarAsync_ValidFile_SavesAndDeletesOldAvatar));
+        var hasher = new PasswordHasher<Usuario>();
+        var fakeStorage = new FakeFileStorageService
+        {
+            RelativePathToReturn = "/uploads/avatars/new.png"
+        };
+
+        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance, fakeStorage);
+
+        var usuario = new Usuario
+        {
+            Nombre = "Ana",
+            Apellido = "Gomez",
+            Email = "ana@test.local",
+            Rol = "Administrador",
+            Avatar = "/uploads/avatars/old.png"
+        };
+        context.Usuarios.Add(usuario);
+        await context.SaveChangesAsync();
+
+        var formFile = new Microsoft.AspNetCore.Http.FormFile(new MemoryStream([1, 2, 3]), 0, 3, "file", "avatar.png")
+        {
+            Headers = new Microsoft.AspNetCore.Http.HeaderDictionary(),
+            ContentType = "image/png"
+        };
+        var (result, error, notFound) = await service.ActualizarAvatarAsync(usuario.Id, formFile);
+
+        Assert.False(notFound);
+        Assert.Null(error);
+        Assert.NotNull(result);
+        Assert.Equal("/uploads/avatars/new.png", result.Avatar);
+
+        // Verifica que se haya ordenado eliminar el avatar viejo
+        Assert.Contains("/uploads/avatars/old.png", fakeStorage.DeletedFiles);
+    }
+
+    [Fact]
+    public async Task EliminarAvatarAsync_ExistingAvatar_DeletesAndClearsProperty()
+    {
+        using var context = CreateInMemoryDbContext(nameof(EliminarAvatarAsync_ExistingAvatar_DeletesAndClearsProperty));
+        var hasher = new PasswordHasher<Usuario>();
+        var fakeStorage = new FakeFileStorageService();
+        var service = new UsuarioService(context, hasher, NullLogger<UsuarioService>.Instance, fakeStorage);
+
+        var usuario = new Usuario
+        {
+            Nombre = "Pedro",
+            Apellido = "Lopez",
+            Email = "pedro@test.local",
+            Rol = "Empleado",
+            Avatar = "/uploads/avatars/pedro.jpg"
+        };
+        context.Usuarios.Add(usuario);
+        await context.SaveChangesAsync();
+
+        var (success, error, notFound) = await service.EliminarAvatarAsync(usuario.Id);
+
+        Assert.True(success);
+        Assert.Null(error);
+        Assert.False(notFound);
+        Assert.Contains("/uploads/avatars/pedro.jpg", fakeStorage.DeletedFiles);
+
+        var reloaded = await context.Usuarios.FindAsync(usuario.Id);
+        Assert.Null(reloaded!.Avatar);
     }
 }
