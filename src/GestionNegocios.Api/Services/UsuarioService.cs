@@ -139,7 +139,7 @@ public class UsuarioService : IUsuarioService
             return (null, "El rol especificado no es válido. Los roles válidos son 'Administrador' y 'Empleado'.");
         }
 
-        // 3. Validar sucursal según rol (docs/02-business-rules.md: regla 3 y 4)
+        // 3. Validar sucursal según rol
         if (rol == "Empleado")
         {
             if (!dto.SucursalId.HasValue)

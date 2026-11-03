@@ -1,0 +1,420 @@
+{
+  "info": {
+    "_postman_id": "c1f7a4d5-8e3b-4c2a-9f5a-3d2b1c8a7e4f",
+    "name": "Sistema de Gestión de Negocios — Web API",
+    "description": "Colección completa para pruebas de integración de la Web API con autenticación JWT, roles, CRUD paginado, búsqueda asíncrona y subida de archivos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "01 - Health Checks",
+      "item": [
+        {
+          "name": "API Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          }
+        },
+        {
+          "name": "Database Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health/db",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health", "db"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Autenticación (JWT)",
+      "item": [
+        {
+          "name": "Login Administrador (Guarda Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "    console.log('Token JWT de Administrador guardado exitosamente');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@gestionnegocios.local\",\n  \"password\": \"Admin123*\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login Empleado (Guarda Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "    console.log('Token JWT de Empleado guardado exitosamente');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"empleado@gestionnegocios.local\",\n  \"password\": \"Empleado123*\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Obtener Usuario Actual (/me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Verificar Rol Administrador (Admin Check)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/admin-check",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "admin-check"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Sucursales",
+      "item": [
+        {
+          "name": "Listar Sucursales Paginadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sucursales?page=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sucursales"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener Sucursal por Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sucursales/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sucursales", "1"]
+            }
+          }
+        },
+        {
+          "name": "Crear Sucursal (Solo Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sucursal Belgrano\",\n  \"direccion\": \"Av. Monroe 2400\",\n  \"telefono\": \"011-4780-9900\",\n  \"activa\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sucursales",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sucursales"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Categorías",
+      "item": [
+        {
+          "name": "Listar Categorías Paginadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categorias?page=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categorias"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear Categoría (Solo Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Panadería\",\n  \"descripcion\": \"Panes artesanales y facturas recién horneadas\",\n  \"activa\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/categorias",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categorias"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Productos",
+      "item": [
+        {
+          "name": "Listar Productos Paginados con Búsqueda",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/productos?page=1&pageSize=10&searchTerm=Agua",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "productos"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" },
+                { "key": "searchTerm", "value": "Agua" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear Producto (Solo Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Café Tostado en Granos 500g\",\n  \"descripcion\": \"Café arábigo tostado natural de origen Colombia\",\n  \"codigo\": \"ALM-099\",\n  \"precio\": 9500.00,\n  \"categoriaId\": 2,\n  \"activo\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/productos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "productos"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Stock e Inventario",
+      "item": [
+        {
+          "name": "Consultar Stock Paginado por Sucursal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/stock?sucursalId=1&page=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stock"],
+              "query": [
+                { "key": "sucursalId", "value": "1" },
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ajuste Manual de Stock (Solo Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": 1,\n  \"sucursalId\": 1,\n  \"cantidad\": 100,\n  \"stockMinimo\": 15\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stock/ajuste",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "stock", "ajuste"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Ventas y Transacciones",
+      "item": [
+        {
+          "name": "Listar Ventas Paginadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ventas?page=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ventas"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Registrar Nueva Venta (Descuenta Stock)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "application/json": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sucursalId\": 1,\n  \"detalles\": [\n    {\n      \"productoId\": 1,\n      \"cantidad\": 2\n    },\n    {\n      \"productoId\": 2,\n      \"cantidad\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ventas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ventas"]
+            }
+          }
+        },
+        {
+          "name": "Anular Venta (Restaura Stock)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ventas/1/anular",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ventas", "1", "anular"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Usuarios y Roles",
+      "item": [
+        {
+          "name": "Listar Usuarios Paginados (Solo Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios?page=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear Usuario Empleado (Solo Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Martín\",\n  \"apellido\": \"Gómez\",\n  \"email\": \"martin.gomez@gestionnegocios.local\",\n  \"password\": \"Empleado123*\",\n  \"rol\": \"Empleado\",\n  \"sucursalId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

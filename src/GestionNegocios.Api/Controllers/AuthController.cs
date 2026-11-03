@@ -8,7 +8,6 @@ namespace GestionNegocios.Api.Controllers;
 
 /// <summary>
 /// Controlador de autenticación y autorización mediante JWT.
-/// Respeta las convenciones de docs/06-api.md y docs/08-authentication.md.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]

@@ -5,7 +5,7 @@ namespace GestionNegocios.Api.Data;
 
 /// <summary>
 /// Contexto principal de Entity Framework Core para el Sistema de Gestión de Negocios.
-/// Contiene los DbSets y las configuraciones de relaciones según docs/05-database.md.
+/// Contiene los DbSets y las configuraciones de relaciones.
 /// </summary>
 public class ApplicationDbContext : DbContext
 {
@@ -97,7 +97,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(s => s.Cantidad).HasDefaultValue(0);
             entity.Property(s => s.StockMinimo).HasDefaultValue(0);
 
-            // UNIQUE(ProductoId, SucursalId) según docs/05-database.md
+            // UNIQUE(ProductoId, SucursalId) para evitar registros duplicados por sucursal
             entity.HasIndex(s => new { s.ProductoId, s.SucursalId }).IsUnique();
 
             // Producto 1:N Stock

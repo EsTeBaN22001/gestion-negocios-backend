@@ -1,7 +1,7 @@
 namespace GestionNegocios.Api.DTOs;
 
 /// <summary>
-/// DTO genérico para respuestas paginadas según docs/11-pagination-search.md.
+/// DTO genérico para respuestas paginadas del servidor.
 /// </summary>
 public class PagedResultDto<T>
 {

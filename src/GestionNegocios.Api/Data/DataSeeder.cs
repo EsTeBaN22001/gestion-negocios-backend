@@ -6,7 +6,6 @@ namespace GestionNegocios.Api.Data;
 
 /// <summary>
 /// Sembrador de datos iniciales mínimos para desarrollo y pruebas.
-/// Cumple con docs/05-database.md (sección Seed inicial) y las reglas de negocio de docs/02-business-rules.md.
 /// </summary>
 public static class DataSeeder
 {
@@ -45,7 +44,7 @@ public static class DataSeeder
                 var employeeEmail = configuration["Seed:EmployeeEmail"] ?? "empleado@gestionnegocios.local";
                 var employeePassword = configuration["Seed:EmployeePassword"] ?? "Empleado123*";
 
-                // Administrador (SucursalId = null según regla 4 de docs/02-business-rules.md)
+                // Administrador (SucursalId = null por tener alcance global)
                 var admin = new Usuario
                 {
                     Nombre = "Administrador",
@@ -58,7 +57,7 @@ public static class DataSeeder
                 };
                 admin.PasswordHash = passwordHasher.HashPassword(admin, adminPassword);
 
-                // Empleado (SucursalId asignado según regla 3 de docs/02-business-rules.md)
+                // Empleado (SucursalId asignado obligatoriamente)
                 var empleado = new Usuario
                 {
                     Nombre = "Juan",

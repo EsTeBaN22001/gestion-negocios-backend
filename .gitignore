@@ -1,38 +1,38 @@
-# Environment / secrets
-.env
-.env.*
-!.env.example
+# ==========================================
+# .gitignore — Backend ASP.NET Core .NET 8
+# ==========================================
 
-# .NET
-**/bin/
-**/obj/
+# Compilación y artefactos .NET
+[Bb]in/
+[Oo]bj/
 *.user
+*.userosscache
+*.sln.docstates
 *.suo
+
+# Visual Studio / Rider / VS Code
 .vs/
-
-# Angular / Node
-**/node_modules/
-**/dist/
-**/.angular/
-.nx/
-
-# IDE
 .idea/
-.vscode/settings.json
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
-# OS
+# Archivos de configuración local y secretos
+*.local.json
+appsettings.Production.json
+secrets.json
+
+# Almacenamiento físico de uploads generados en tiempo de ejecución
+src/GestionNegocios.Api/wwwroot/uploads/*
+!src/GestionNegocios.Api/wwwroot/uploads/**/.gitkeep
+
+# Pruebas y cobertura
+TestResults/
+coverage/
+*.trx
+
+# Logs y SO
+*.log
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
-
-# Test / coverage
-coverage/
-TestResults/
-
-# Local Docker data
-mysql-data/
-
-# User uploads during development
-uploads/
